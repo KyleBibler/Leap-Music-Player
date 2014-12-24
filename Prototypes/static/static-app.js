@@ -7,19 +7,13 @@ $(document).ready(function() {
 	/* Variable declarations */
 	var controller = new Leap.Controller({enableGestures: true, frameEventName: 'animationFrame'}),
 		context = new webkitAudioContext(),
-		chords = ["C Major", "E Major", "F Major", "G Minor", "B Minor"],
+		chords = ["C Major", "G Major", "F Major", "A Minor", "B Minor"],
 		stringPositions = [500, 620, 740, 860, 980, 1100],
-		notes = [['C3','E3','G3','C4','E4','G4'],
-				['E3','G#3','B4','E4','G#4','B5'],
-				['F2','A3','C3','F3','A4','C4'],
-				['G2','Bb3','D3','G3','Bb4','D4'],
-				['B3','D3','F#3','B4','D4','F#4']],
-				chordNotes = [];
-		notes.forEach(function(chord) {
-			chordNotes.push(chord.map(function(note) {
-				return Note.fromLatin(note);
-			}));
-		});
+		notes = [[48, 52, 55, 60, 64, 67], //c major
+				[43, 47, 50, 55, 59, 62], //g major
+				[53, 57, 60, 53, 57, 60], //f major
+				[45, 48, 52, 57, 60, 64], //a minor
+				[47, 51, 54, 59, 62, 66]]; //b minor
 
 	var getLeftIndexPos = function(frame) {
 		var leftIndexPos = [0, 0],
@@ -65,7 +59,17 @@ $(document).ready(function() {
 	var stringsPlayed = function(start, end) {
 		var strings = [0, 0, 0, 0, 0, 0];
 		//stringPositions.forEach(function())
-	};	
+	};
+
+    var playChord = function(chord) {
+        var chordNotes = notes[chord];
+        MIDI.noteOn(0, chordNotes[0], 100, 0);
+        MIDI.noteOn(0, chordNotes[1], 100, 0);
+        MIDI.noteOn(0, chordNotes[2], 100, 0);
+        MIDI.noteOff(0, chordNotes[0], 0.5);
+        MIDI.noteOff(0, chordNotes[1], 0.5);
+        MIDI.noteOff(0, chordNotes[2], 0.5);
+    };
 
 	
 	/* Sets Leap Controller to notify when connected and when Leap Motion is present */
@@ -79,9 +83,9 @@ $(document).ready(function() {
 
     MIDI.loadPlugin({
         soundfontUrl: "../static/FluidR3_GM/",
-        instrument: "acoustic_guitar_nylon",
+        instrument: "acoustic_guitar_steel",
         callback: function (fingerType) {
-            MIDI.programChange(0, 24);
+            MIDI.programChange(0, 25);
             var delay = 0; // play one note every quarter second
             var note = notes[fingerType-1]; // the MIDI note
             var velocity = 127; // how hard the note hits
@@ -96,20 +100,15 @@ $(document).ready(function() {
 			
 			console.log('GESTURE HAPPENED!');
 			var frame = controller.frame(),
-				normalSwipeStart = frame.interactionBox.normalizePoint(gesture.startPosition, true)[0] * ctx.canvas.width,
-				normalSwipeEnd = frame.interactionBox.normalizePoint(gesture.position, true)[0] * ctx.canvas.width,
+//				normalSwipeStart = frame.interactionBox.normalizePoint(gesture.startPosition, true)[0] * ctx.canvas.width,
+//				normalSwipeEnd = frame.interactionBox.normalizePoint(gesture.position, true)[0] * ctx.canvas.width,
 				leftIndexPos = getLeftIndexPos(frame),
 				chord = getChord(leftIndexPos);
+
+            playChord(chord);
 			
-			MIDI.noteOn(0, 48, 100, 0);
-            MIDI.noteOn(0, 52, 100, 0);
-            MIDI.noteOn(0, 55, 100, 0);
-            MIDI.noteOff(0, 48, 0.5);
-            MIDI.noteOff(0, 52, 0.5);
-            MIDI.noteOff(0, 55, 0.5);
-			
-			console.log(normalSwipeStart);
-			console.log(normalSwipeEnd);
+//			console.log(normalSwipeStart);
+//			console.log(normalSwipeEnd);
 
 			// var	finger = controller.frame().finger(gesture.pointableIds[0]),
 			// 	hand = finger.hand().type,
@@ -152,13 +151,20 @@ $(document).ready(function() {
 
 		ctx.fillStyle = 'black';
 		/* String drawing */
-		for(var i = 500; i < 6*120+500; i+=120) {
+		for(var i = 600; i < 6*120+600; i+=120) {
 			ctx.beginPath();
 			ctx.rect(i, 20, 10, 600);
 			ctx.fill();
 		}
 		
 		/* Finger drawing */
+        if(frame.pointables.length === 0) {
+            ctx.beginPath();
+            ctx.lineWidth = 7;
+            ctx.strokeStyle = 'black';
+            ctx.fillText("No Hands Are Detected", 60, ctx.canvas.height-50);
+            ctx.stroke();
+        }
         frame.pointables.forEach(function(pointable) {
         	var finger = frame.finger(pointable.id);
 	        if (!(finger.type != 1 && finger.hand().type === "left")) {
