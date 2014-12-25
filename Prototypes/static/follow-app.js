@@ -30,7 +30,9 @@ $(document).ready(function() {
 	var controller = new Leap.Controller({enableGestures: true, frameEventName: 'animationFrame'}),
         noteNames = ['F', 'E', 'D', 'C', 'G', 'A', 'B', 'C'], //Left Hand is 0 - 3, right hand is 4 - 7
 		noteValues = [53, 52, 50, 48, 55, 57, 59, 60],
-        notePlaying = [false, false, false, false, false, false, false, false];
+        notePlaying = [false, false, false, false, false, false, false, false],
+        noteStart = 0,
+        octaveCanChange = true;
 
 
     /* Note on/off function */
@@ -50,6 +52,10 @@ $(document).ready(function() {
             notePlaying[finger] = false;
         }
     }
+
+    var changeOctave = function(direction) {
+
+    };
 
 	/* Sets Leap Controller to notify when connected and when Leap Motion is present */
 	controller.on('connect', function () {
@@ -83,9 +89,11 @@ $(document).ready(function() {
 
 	/* Variable declarations and set up for the canvas, where we will draw the finger points */
 	var canvas = document.getElementById("canvas"),
-    	ctx = canvas.getContext("2d");
-    ctx.canvas.width  = window.innerWidth;
-  	ctx.canvas.height = window.innerHeight-3;
+    	ctx = canvas.getContext("2d"),
+        canvasCenter = (window.innerWidth-50) / 2;
+
+    ctx.canvas.width  = canvasCenter * 2;
+  	ctx.canvas.height = window.innerHeight-10;
 
   	/* Sets the controller to continuously update the canvas with the finger locations as given by the Leap Motion
      * Where all the magic happens
@@ -95,13 +103,16 @@ $(document).ready(function() {
 		ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.font = "20pt sans-serif";
 
+
         //Variable declarations
         var position,
             normalized,
             x,
             y,
             leftHandY,
+            leftHandX,
             rightHandY,
+            rightHandX,
             iBox = frame.interactionBox;
 //
         frame.hands.forEach(function(hand){
@@ -109,17 +120,23 @@ $(document).ready(function() {
             normalized = iBox.normalizePoint(position, true);
             if(hand.type == 'right') {
                 rightHandY = ctx.canvas.height * (1-normalized[1]);
+                rightHandX = ctx.canvas.width * normalized[0];
             } else {
                 leftHandY = ctx.canvas.height * (1-normalized[1]);
+                leftHandX = ctx.canvas.width * normalized[0];
             }
         });
+
+        /* TODO Draw change octave zones here */
+
+
 
         //Gives message if no hands are in the Leap space
         if(frame.pointables.length === 0) {
             ctx.beginPath();
             ctx.lineWidth = 7;
             ctx.strokeStyle = 'black';
-            ctx.fillText("No Hands Are Detected", ctx.canvas.width/3, ctx.canvas.height/3);
+            ctx.fillText("No Hands Are Detected", canvasCenter-150, ctx.canvas.height/3);
             ctx.stroke();
         }
 
@@ -140,7 +157,7 @@ $(document).ready(function() {
 
 
                 //Plays note if fingertip is almost below the palm position
-                if(y > handYPos - 50) {
+                if(((fingerType-3) % 4 > 0 && y > handYPos - 60) || y > handYPos) {
                     playNote(fingerType);
                 } else if (notePlaying[fingerType]) {
                     stopNote(fingerType);
